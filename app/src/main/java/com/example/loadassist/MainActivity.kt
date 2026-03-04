@@ -42,7 +42,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
     Column(modifier = modifier) {
         Text(
-            text = "Hello $name!"
+            text = "Login: !"
         )
         TextField(
             value = text,
