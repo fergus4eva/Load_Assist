@@ -1,13 +1,11 @@
 package com.example.loadassist
 
-import android.R.attr.onClick
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,8 +25,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.loadassist.ui.theme.LoadAssistTheme
+import com.example.loadassist.ui_.Login
+import com.example.loadassist.ui_.WorkerMenuScreen
 
+
+//this enum class is used for navigation purposes, cited from
+//https://developer.android.com/codelabs/basic-android-kotlin-compose-navigation#3
+enum class LoadAssistScreen {
+    START,
+    WORKERMENU
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,61 +46,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LoadAssistTheme {
+                val navController = rememberNavController()
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Login(
-                        name = "Android",
-                        modifier = Modifier.fillMaxSize().padding(innerPadding)
-                    )
+                    NavHost(
+                        navController = navController,
+                        startDestination = LoadAssistScreen.START.name,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(route = LoadAssistScreen.START.name) {
+                            Login(
+                                onLoginSuccess = {
+                                    navController.navigate(LoadAssistScreen.WORKERMENU.name)
+                                }
+                            )
+                        }
+                        composable(route = LoadAssistScreen.WORKERMENU.name) {
+                            WorkerMenuScreen(
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-fun Login(name: String, modifier: Modifier = Modifier) {
-    var text by remember { mutableStateOf("")}
-    var text2 by remember { mutableStateOf("")}
-    Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.Top, horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo",
-            contentScale = ContentScale.FillWidth,
-            modifier = Modifier.size(500.dp)
-        )
-
-    }
-
-
-
-    Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,horizontalAlignment = Alignment.CenterHorizontally) {
-
-        Text(
-            text = "Login: "
-        )
-        TextField(
-            value = text,
-            onValueChange = { text = it },
-            label = { Text("") }
-        )
-        Text(
-            text = "Password: "
-        )
-        TextField(
-            value = text2,
-            onValueChange = { text2 = it },
-            label = { Text("") }
-        )
-        Button(onClick = { /*TODO*/ }, modifier = Modifier.padding(10.dp)) {
-            Text(text = "Login")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginPreview() {
-    LoadAssistTheme {
-        Login("Android")
-    }
-}
