@@ -25,6 +25,8 @@ import com.example.loadassist.R
 
 
 @Composable
+//login screen - onLoginSuccess: () - a function taking no arguments, used
+//by navControllers to navigate to the next screen
 fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
     var username by remember { mutableStateOf("")}
     var password by remember { mutableStateOf("")}
