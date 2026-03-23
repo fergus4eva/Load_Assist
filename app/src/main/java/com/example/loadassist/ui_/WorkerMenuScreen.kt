@@ -28,7 +28,9 @@ import com.example.loadassist.ui.theme.LoadAssistTheme
  */
 @Preview
 @Composable
-fun WorkerMenuScreen(modifier: Modifier = Modifier) {
+fun WorkerMenuScreen(modifier: Modifier = Modifier,
+    onManualInputClick: () -> Unit = {}
+) {
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Top,
@@ -55,7 +57,7 @@ fun WorkerMenuScreen(modifier: Modifier = Modifier) {
             Text(text = "UPLOAD ASN")
         }
         Button(
-            onClick = ::TODO,
+            onClick = onManualInputClick,
             modifier = Modifier.padding(10.dp)
         )
         {

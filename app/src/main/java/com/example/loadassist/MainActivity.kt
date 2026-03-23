@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.loadassist.ui.theme.LoadAssistTheme
 import com.example.loadassist.ui_.Login
+import com.example.loadassist.ui_.ManualInputScreen
 import com.example.loadassist.ui_.WorkerMenuScreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -53,8 +54,14 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(route = LoadAssistScreen.WORKERMENU.name) {
                             WorkerMenuScreen(
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                onManualInputClick = {
+                                    navController.navigate(LoadAssistScreen.MANUAL_INPUT.name)
+                                }
                             )
+                        }
+                        composable(route = LoadAssistScreen.MANUAL_INPUT.name) {
+                            ManualInputScreen(modifier = Modifier.fillMaxSize())
                         }
                     }
                 }

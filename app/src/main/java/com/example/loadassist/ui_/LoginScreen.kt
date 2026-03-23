@@ -21,24 +21,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.loadassist.R
 import com.google.firebase.Firebase
-import com.google.firebase.firestore.firestore
+import com.google.firebase.auth.auth
 
 @Composable
 fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
-    //employee number for login
     var employeeNumber by remember { mutableStateOf("") }
-    //employee password for login
     var password by remember { mutableStateOf("") }
-    //isLoading boolean to show loading spinner -
     var isLoading by remember { mutableStateOf(false) }
-    //local context variable to show toast messages
-    // (error messages or prompts that appear on the screen)
     val context = LocalContext.current
-    //our datebase variable to Firebase Firestore
-    val db = Firebase.firestore
+    val auth = Firebase.auth
 
     Column(
         modifier = modifier.fillMaxSize(),
@@ -49,61 +44,52 @@ fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "Logo",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(250.dp)
+            modifier = Modifier.size(250.dp).padding(bottom = 16.dp)
         )
         Text(text = "Employee Number:")
         TextField(
             value = employeeNumber,
             onValueChange = { employeeNumber = it },
             label = { Text("Enter number") },
-            enabled = !isLoading
+            enabled = !isLoading,
+            singleLine = true
         )
         Text(text = "Password:", modifier = Modifier.padding(top = 8.dp))
         TextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Enter password") },
-            enabled = !isLoading
+            enabled = !isLoading,
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
         )
-        //our conditional to show spinner or login button
+        
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-        }
-        else {
+        } else {
             Button(
                 onClick = {
-                    //a nice message for the user to show that they need to do something
                     if (employeeNumber.isBlank() || password.isBlank()) {
-                        //toast is a message prompt, showing the error message
                         Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    //is Loading True to show spinner -while accessing the database
+                    
                     isLoading = true
-                    //accessing database
-                    db.collection("employees")
-                        .document(employeeNumber)
-                        .get()
-                        .addOnSuccessListener { document ->
+                    // Map employee number to a unique fake email for Firebase Auth
+                    val email = "${employeeNumber}@loadassist.com"
+                    
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
                             isLoading = false
-                            if (document.exists()) {
-                                val dbPassword = document.getString("password")
-                                if (dbPassword == password) {
-                                    onLoginSuccess()
-                                } else {
-                                    Toast.makeText(context, "Incorrect password", Toast.LENGTH_SHORT).show()
-                                }
+                            if (task.isSuccessful) {
+                                onLoginSuccess()
                             } else {
-                                Toast.makeText(context, "Employee not found", Toast.LENGTH_SHORT).show()
+                                val message = task.exception?.message ?: "Login failed"
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                             }
                         }
-                        .addOnFailureListener { e ->
-                            isLoading = false
-                            //toast is a message prompt, showing the error message
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
                 },
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(top = 24.dp)
             ) {
                 Text(text = "Login")
             }
