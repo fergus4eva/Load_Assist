@@ -7,13 +7,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.loadassist.ui.theme.LoadAssistTheme
+import com.example.loadassist.ui_.LoadPlanScreen
 import com.example.loadassist.ui_.Login
 import com.example.loadassist.ui_.ManualInputScreen
+import com.example.loadassist.ui_.ManualInputViewModel
 import com.example.loadassist.ui_.WorkerMenuScreen
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -26,6 +30,7 @@ enum class LoadAssistScreen {
     START,
     WORKERMENU,
     MANUAL_INPUT,
+    LOAD_PLAN
 }
 
 class MainActivity : ComponentActivity() {
@@ -39,6 +44,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             LoadAssistTheme {
                 val navController = rememberNavController()
+                
+                // Create the shared ViewModel here
+                val sharedViewModel: ManualInputViewModel = viewModel()
+                
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -61,7 +70,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(route = LoadAssistScreen.MANUAL_INPUT.name) {
-                            ManualInputScreen(modifier = Modifier.fillMaxSize())
+                            ManualInputScreen(
+                                modifier = Modifier.fillMaxSize(),
+                                viewModel = sharedViewModel,
+                                onLoadPlanClick = {
+                                    navController.navigate(LoadAssistScreen.LOAD_PLAN.name)
+                                }
+                            )
+                        }
+                        composable(route = LoadAssistScreen.LOAD_PLAN.name) {
+                            LoadPlanScreen(
+                                modifier = Modifier.fillMaxSize(),
+                                viewModel = sharedViewModel
+                            )
                         }
                     }
                 }
