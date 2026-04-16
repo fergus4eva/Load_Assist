@@ -75,7 +75,7 @@ fun ManualInputScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 100.dp, max = 300.dp) // Dynamic height constraints
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
                     val invoiceText = remember(refreshTrigger) {
@@ -92,6 +92,7 @@ fun ManualInputScreen(
 
                     Text(
                         text = invoiceText,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
                         modifier = Modifier.verticalScroll(rememberScrollState())
@@ -122,7 +123,7 @@ fun ManualInputScreen(
         }
         Button(
             onClick = onLoadPlanClick,
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier.fillMaxWidth()
         )
         {
             Text(text = "LOAD INPUT COMPLETE")

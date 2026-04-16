@@ -3,9 +3,13 @@ package com.example.loadassist.objects;
 import androidx.annotation.NonNull;
 
 import com.example.loadassist.adts.InventoryList;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -14,6 +18,7 @@ import java.util.UUID;
  */
 public class Invoice implements Iterable<lineItems> {
     private String invoiceNumber;
+    private long timestamp;
     // Maps Category Name -> InventoryList of items in that category
     private Map<String, InventoryList<lineItems>> itemsByCategory;
     
@@ -21,6 +26,7 @@ public class Invoice implements Iterable<lineItems> {
 
     public Invoice() {
         this.invoiceNumber = generateInvoiceNumber();
+        this.timestamp = System.currentTimeMillis();
         this.itemsByCategory = new HashMap<>();
         this.totalQuantity = 0;
     }
@@ -82,6 +88,47 @@ public class Invoice implements Iterable<lineItems> {
             }
         }
     }
+
+    /**
+     * Groups all items in the invoice by their runner number.
+     * @return A map where key is Runner Number and value is a list of items for that runner.
+     */
+    public Map<Integer, InventoryList<lineItems>> getItemsByRunner() {
+        Map<Integer, InventoryList<lineItems>> runnerMap = new TreeMap<>(); // Sorted by runner number
+        for (lineItems item : this) {
+            int runner = item.getRunnerNumber();
+            if (!runnerMap.containsKey(runner)) {
+                runnerMap.put(runner, new InventoryList<lineItems>());
+            }
+            runnerMap.get(runner).add(item);
+        }
+        return runnerMap;
+    }
+
+    /**
+     * Calculates and returns the name and size of the largest category by item count.
+     * @return A string like "CategoryName (Count)" or "N/A" if empty.
+     */
+    public String getLargestCategoryInfo() {
+        if (itemsByCategory.isEmpty()) return "N/A";
+        
+        String largestCat = "";
+        int maxCount = -1;
+        
+        for (Map.Entry<String, InventoryList<lineItems>> entry : itemsByCategory.entrySet()) {
+            int currentCount = 0;
+            for (lineItems item : entry.getValue()) {
+                currentCount += item.getQuantity();
+            }
+            
+            if (currentCount > maxCount) {
+                maxCount = currentCount;
+                largestCat = entry.getKey();
+            }
+        }
+        
+        return largestCat + " (" + maxCount + ")";
+    }
     
     /**
      * Returns the list of items for a specific category.
@@ -116,6 +163,18 @@ public class Invoice implements Iterable<lineItems> {
 
     public String getInvoiceNumber() {
         return invoiceNumber;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    /**
+     * Returns a formatted date string for the invoice creation time.
+     */
+    public String getFormattedDate() {
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
+        return sdf.format(new Date(timestamp));
     }
 
     private String generateInvoiceNumber() {
@@ -170,6 +229,7 @@ public class Invoice implements Iterable<lineItems> {
     public String toString() {
         return "Invoice{" +
                 "invoiceNumber='" + invoiceNumber + '\'' +
+                ", date='" + getFormattedDate() + '\'' +
                 ", itemsByCategory=" + itemsByCategory +
                 ", totalQuantity=" + totalQuantity +
                 '}';

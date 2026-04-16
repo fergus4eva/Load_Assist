@@ -1,7 +1,6 @@
 package com.example.loadassist.ui_
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,7 +15,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.loadassist.ui_.Login
 import com.example.loadassist.R
 import com.example.loadassist.ui.theme.LoadAssistTheme
 
@@ -26,10 +24,12 @@ import com.example.loadassist.ui.theme.LoadAssistTheme
  * [onNextButtonClicked] lambda that expects the selected quantity and triggers the navigation to
  * next screen
  */
-@Preview
 @Composable
-fun WorkerMenuScreen(modifier: Modifier = Modifier,
-    onManualInputClick: () -> Unit = {}
+fun WorkerMenuScreen(
+    modifier: Modifier = Modifier,
+    onManualInputClick: () -> Unit = {},
+    onProductDirectoryClick: () -> Unit = {},
+    onAddProductClick: () -> Unit = {}
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -50,7 +50,7 @@ fun WorkerMenuScreen(modifier: Modifier = Modifier,
 
         )
         Button(
-            onClick = ::TODO,
+            onClick = { /* TODO: Implement ASN Upload */ },
             modifier = Modifier.padding(10.dp)
         )
         {
@@ -63,21 +63,29 @@ fun WorkerMenuScreen(modifier: Modifier = Modifier,
         {
             Text(text = "Manually Input Load Items and Quantities")
         }
+        Button(
+            onClick = onProductDirectoryClick,
+            modifier = Modifier.padding(10.dp)
+        )
+        {
+            Text(text = "PRODUCT DIRECTORY")
+        }
+        Button(
+            onClick = onAddProductClick,
+            modifier = Modifier.padding(10.dp)
+        )
+        {
+            Text(text = "ADD NEW PRODUCT")
+        }
 
 
     }
+}
 
-    /**
-     * Customizable button composable that displays the [labelResourceId]
-     * and triggers [onClick] lambda when this composable is clicked
-     */
-
-
-    @Preview(showSystemUi = false)
-    @Composable
-    fun WorkerMenuPreview() {
-        LoadAssistTheme {
-            WorkerMenuScreen()
-        }
+@Preview(showSystemUi = true)
+@Composable
+fun WorkerMenuPreview() {
+    LoadAssistTheme {
+        WorkerMenuScreen()
     }
 }

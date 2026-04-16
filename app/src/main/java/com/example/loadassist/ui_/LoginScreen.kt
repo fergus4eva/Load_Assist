@@ -5,8 +5,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -44,7 +45,10 @@ fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "Logo",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(250.dp).padding(bottom = 16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(350.dp)
+                .padding(bottom = 32.dp)
         )
         Text(text = "Employee Number:")
         TextField(
@@ -69,14 +73,15 @@ fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
         } else {
             Button(
                 onClick = {
-                    if (employeeNumber.isBlank() || password.isBlank()) {
+                    val trimmedNumber = employeeNumber.trim()
+                    if (trimmedNumber.isBlank() || password.isBlank()) {
                         Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     
                     isLoading = true
                     // Map employee number to a unique fake email for Firebase Auth
-                    val email = "${employeeNumber}@loadassist.com"
+                    val email = "${trimmedNumber}@loadassist.com"
                     
                     auth.signInWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
