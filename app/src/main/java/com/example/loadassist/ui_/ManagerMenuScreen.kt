@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonAdd
@@ -14,9 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.loadassist.R
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +27,8 @@ fun ManagerMenuScreen(
     onAddProductClick: () -> Unit = {},
     onAddUserClick: () -> Unit = {},
     onViewReportsClick: () -> Unit = {},
-    onWorkerMenuClick: () -> Unit = {}
+    onWorkerMenuClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -33,7 +36,15 @@ fun ManagerMenuScreen(
                 title = { Text("Manager Portal", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = {
+                        Firebase.auth.signOut()
+                        onLogoutClick()
+                    }) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -69,7 +80,7 @@ fun ManagerMenuScreen(
 
             ManagerMenuButton(
                 text = "Register New Item",
-                icon = Icons.Default.Inventory, // Could be specialized icon
+                icon = Icons.Default.Inventory,
                 onClick = onAddProductClick
             )
 
@@ -96,6 +107,16 @@ fun ManagerMenuScreen(
                 Icon(Icons.Default.People, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("SWITCH TO WORKER INTERFACE")
+            }
+            
+            TextButton(
+                onClick = {
+                    Firebase.auth.signOut()
+                    onLogoutClick()
+                },
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Text("Logout Account", color = MaterialTheme.colorScheme.error)
             }
         }
     }

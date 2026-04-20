@@ -8,8 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -23,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.loadassist.R
 import com.google.firebase.Firebase
@@ -32,6 +38,7 @@ import com.google.firebase.auth.auth
 fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
     var employeeNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val auth = Firebase.auth
@@ -64,7 +71,15 @@ fun Login(onLoginSuccess: () -> Unit, modifier: Modifier = Modifier) {
             onValueChange = { password = it },
             label = { Text("Enter password") },
             enabled = !isLoading,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val description = if (passwordVisible) "Hide password" else "Show password"
+                
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = image, contentDescription = description)
+                }
+            },
             singleLine = true
         )
         

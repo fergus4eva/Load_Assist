@@ -24,7 +24,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.functions
+
+private const val FUNCTION_REGION = "us-central1"
+private const val FUNCTION_NAME = "registerNewUser" 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +44,8 @@ fun AddUserScreen(
     var selectedRole by remember { mutableStateOf(roles[0]) }
     
     val context = LocalContext.current
-    val functions = Firebase.functions
-    val auth = Firebase.auth
+    val auth = remember { Firebase.auth }
+    val functions = remember { Firebase.functions(FUNCTION_REGION) }
 
     Scaffold(
         topBar = {
@@ -63,17 +67,12 @@ fun AddUserScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Account Credentials",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text(text = "Account Credentials", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 
             OutlinedTextField(
                 value = employeeNumber,
                 onValueChange = { employeeNumber = it },
                 label = { Text("Employee Number") },
-                placeholder = { Text("e.g. 123456") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -89,7 +88,7 @@ fun AddUserScreen(
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = null)
+                        Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password")
                     }
                 }
             )
@@ -133,82 +132,61 @@ fun AddUserScreen(
 
             Button(
                 onClick = {
-                    val trimmed = employeeNumber.trim()
-                    if (trimmed.length < 4 || password.length < 6) {
-                        Toast.makeText(context, "Invalid ID or Password", Toast.LENGTH_SHORT).show()
+                    val user = auth.currentUser
+                    if (user == null) {
+                        Toast.makeText(context, "Local Auth Error: User is null", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
-                    val currentUser = auth.currentUser
-                    if (currentUser == null) {
-                        Toast.makeText(context, "Authentication error: No user signed in", Toast.LENGTH_LONG).show()
+                    if (employeeNumber.length < 4 || password.length < 6) {
+                        Toast.makeText(context, "Invalid ID or Password (min 6 chars)", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
                     isSaving = true
                     
-                    // Force refresh token and check claims
-                    currentUser.getIdToken(true).addOnCompleteListener { tokenTask ->
+                    user.getIdToken(true).addOnCompleteListener { tokenTask ->
                         if (tokenTask.isSuccessful) {
-                            val result = tokenTask.result
-                            val isManager = result?.claims?.get("isManager") as? Boolean ?: false
-                            val callerEmail = currentUser.email ?: ""
-                            val callerEmpNumber = callerEmail.substringBefore("@")
+                            val idToken = tokenTask.result?.token
+                            Log.d("AddUserScreen", "Token refresh success. Token length: ${idToken?.length}")
                             
-                            Log.d("AddUserScreen", "Caller: $callerEmpNumber, isManager: $isManager")
-
-                            // Prepare data for the Cloud Function
                             val data = hashMapOf(
-                                "employeeNumber" to trimmed,
+                                "employeeNumber" to employeeNumber.trim(),
                                 "password" to password,
-                                "role" to selectedRole,
-                                "callerId" to callerEmpNumber // Pass this just in case the function can use it
+                                "role" to selectedRole.lowercase(),
+                                "callerId" to (user.email?.substringBefore("@") ?: "")
                             )
 
-                            // CALL THE CLOUD FUNCTION
                             functions
-                                .getHttpsCallable("registerNewUser")
+                                .getHttpsCallable(FUNCTION_NAME)
                                 .call(data)
-                                .addOnSuccessListener {
+                                .addOnSuccessListener { result ->
                                     isSaving = false
-                                    Toast.makeText(context, "User registered successfully!", Toast.LENGTH_LONG).show()
-                                    
-                                    // Refresh token for the current user in case they promoted themselves
-                                    // or just to ensure the token is up to date after the admin action.
-                                    currentUser.getIdToken(true).addOnCompleteListener { refreshTask ->
-                                        if (refreshTask.isSuccessful) {
-                                            Log.d("Auth", "Token refreshed successfully after user creation")
-                                        } else {
-                                            Log.e("Auth", "Token refresh failed after user creation", refreshTask.exception)
-                                        }
-                                    }
-
+                                    Toast.makeText(context, "User Created Successfully!", Toast.LENGTH_LONG).show()
                                     onNavigateBack()
                                 }
                                 .addOnFailureListener { e ->
                                     isSaving = false
                                     Log.e("AddUserScreen", "Cloud Function Error", e)
-                                    val errorMsg = if (e.message?.contains("logged in") == true && callerEmpNumber == "148596") {
-                                        "Master Admin $callerEmpNumber is logged in, but the server rejected the token. Try signing out and back in."
+                                    val errorMsg = if (e is FirebaseFunctionsException) {
+                                        "Error: ${e.message}"
                                     } else {
-                                        e.message ?: "Unknown Cloud Error"
+                                        "Network Error: ${e.localizedMessage}"
                                     }
                                     Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                 }
                         } else {
                             isSaving = false
-                            Toast.makeText(context, "Failed to refresh auth token", Toast.LENGTH_SHORT).show()
+                            Log.e("AddUserScreen", "Token Fetch Failed", tokenTask.exception)
+                            Toast.makeText(context, "Authentication verification failed.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !isSaving
             ) {
-                if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("CREATE USER ACCOUNT")
-                }
+                if (isSaving) CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                else Text("CREATE ACCOUNT")
             }
         }
     }

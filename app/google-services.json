@@ -12,7 +12,16 @@
           "package_name": "com.example.loadassist"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "507846097211-hajrmva80tpn633705sjo83h0a2tkv95.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.loadassist",
+            "certificate_hash": "eaf14a3d0d2d8f97de91c2e90f18ba5fd2a000c9"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBAMYb4dZfDCxF-_2wyMKHCZ4XDplZgy7g"

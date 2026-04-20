@@ -24,10 +24,13 @@ import com.example.loadassist.ui_.ManualInputScreen
 import com.example.loadassist.ui_.ManualInputViewModel
 import com.example.loadassist.ui_.ProductDirectoryScreen
 import com.example.loadassist.ui_.ReceivingScreen
+import com.example.loadassist.ui_.ReportsScreen
 import com.example.loadassist.ui_.RunnerOrganizationScreen
 import com.example.loadassist.ui_.ScannerScreen
 import com.example.loadassist.ui_.WorkerMenuScreen
 import com.google.firebase.Firebase
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 
@@ -46,7 +49,8 @@ enum class LoadAssistScreen {
     PRODUCT_DIRECTORY,
     ADD_PRODUCT,
     FINISHED_LOAD,
-    ADD_USER
+    ADD_USER,
+    REPORTS
 }
 
 class MainActivity : ComponentActivity() {
@@ -54,6 +58,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Initialize App Check for Cloud Functions verification
+        val firebaseAppCheck = FirebaseAppCheck.getInstance()
+        firebaseAppCheck.installAppCheckProviderFactory(
+            DebugAppCheckProviderFactory.getInstance()
+        )
+
         // Initialize Firebase Auth
         auth = Firebase.auth
         enableEdgeToEdge()
@@ -79,9 +89,13 @@ class MainActivity : ComponentActivity() {
                                     
                                     // Navigate to Manager Menu if ID is 148596, otherwise Worker Menu
                                     if (empNumber == "148596") {
-                                        navController.navigate(LoadAssistScreen.MANAGERMENU.name)
+                                        navController.navigate(LoadAssistScreen.MANAGERMENU.name) {
+                                            popUpTo(LoadAssistScreen.START.name) { inclusive = true }
+                                        }
                                     } else {
-                                        navController.navigate(LoadAssistScreen.WORKERMENU.name)
+                                        navController.navigate(LoadAssistScreen.WORKERMENU.name) {
+                                            popUpTo(LoadAssistScreen.START.name) { inclusive = true }
+                                        }
                                     }
                                 }
                             )
@@ -98,11 +112,17 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(LoadAssistScreen.ADD_USER.name)
                                 },
                                 onViewReportsClick = {
-                                    // TODO: Implement Reports Screen
-                                    Toast.makeText(this@MainActivity, "Reports Coming Soon", Toast.LENGTH_SHORT).show()
+                                    navController.navigate(LoadAssistScreen.REPORTS.name)
                                 },
                                 onWorkerMenuClick = {
                                     navController.navigate(LoadAssistScreen.WORKERMENU.name)
+                                },
+                                onLogoutClick = {
+                                    // FIX: Explicitly sign out from Firebase
+                                    auth.signOut()
+                                    navController.navigate(LoadAssistScreen.START.name) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -117,6 +137,11 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAddProductClick = {
                                     navController.navigate(LoadAssistScreen.ADD_PRODUCT.name)
+                                },
+                                onBackToManagerClick = {
+                                    navController.navigate(LoadAssistScreen.MANAGERMENU.name) {
+                                        popUpTo(LoadAssistScreen.WORKERMENU.name) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -181,6 +206,13 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(route = LoadAssistScreen.ADD_USER.name) {
                             AddUserScreen(
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                        composable(route = LoadAssistScreen.REPORTS.name) {
+                            ReportsScreen(
                                 onNavigateBack = {
                                     navController.popBackStack()
                                 }

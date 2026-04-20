@@ -65,6 +65,16 @@ class ManualInputViewModel : ViewModel() {
         if (empNumber == "148596") {
             _isManager.value = true
             Log.d("ManualInputViewModel", "Master Admin $empNumber detected")
+            
+            // Refresh token as requested for the manager
+            currentUser.getIdToken(true).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val idToken = task.result?.token
+                    Log.d("Auth", "Token refreshed successfully for Manager/Admin")
+                } else {
+                    Log.e("Auth", "Token refresh failed", task.exception)
+                }
+            }
             return
         }
 
@@ -90,12 +100,15 @@ class ManualInputViewModel : ViewModel() {
             .addOnSuccessListener { result ->
                 _allProducts.value = result.documents.mapNotNull { doc ->
                     try {
+                        val barcodeId = doc.getString("barcodeId") ?: ""
+                        val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
+                        
                         lineItems(
                             doc.getString("name") ?: "",
                             doc.getString("category") ?: "General",
                             doc.getString("brand") ?: "Unknown",
-                            doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0,
-                            doc.getString("barcodeId") ?: "",
+                            itemNumber,
+                            if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId,
                             doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
                             doc.getString("imageUrl") ?: "",
                             doc.getString("description") ?: "No description provided.",
@@ -130,12 +143,15 @@ class ManualInputViewModel : ViewModel() {
             .addOnSuccessListener { result ->
                 val items = result.documents.mapNotNull { doc ->
                     try {
+                        val barcodeId = doc.getString("barcodeId") ?: ""
+                        val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
+                        
                         lineItems(
                             doc.getString("name") ?: "",
                             category,
                             doc.getString("brand") ?: "Unknown",
-                            doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0,
-                            doc.getString("barcodeId") ?: "",
+                            itemNumber,
+                            if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId,
                             doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
                             doc.getString("imageUrl") ?: "",
                             doc.getString("description") ?: "",
