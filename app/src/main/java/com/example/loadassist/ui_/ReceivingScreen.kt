@@ -35,7 +35,6 @@ fun ReceivingScreen(
     val refreshTrigger by viewModel.refreshTrigger.collectAsState()
     val scannedItems = viewModel.scannedItems
     
-    // Local expansion state for this screen
     val expandedCategories = remember { mutableStateMapOf<String, Boolean>() }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -73,11 +72,8 @@ fun ReceivingScreen(
             }
         }
 
-        // Summary Progress
         val totalToScan = invoice.totalQuantity
         val totalScanned = scannedItems.values.sum()
-        
-        // Logical check for missing products when scanning is partially done
         val missingProduct = totalScanned > 0 && totalScanned < totalToScan
         
         Card(
@@ -107,7 +103,6 @@ fun ReceivingScreen(
             }
         }
 
-        // Navigation to Runner Builds
         Button(
             onClick = onRunnerBuildsClick,
             modifier = Modifier.fillMaxWidth(),
@@ -118,7 +113,6 @@ fun ReceivingScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // General Scan Button
         Button(
             onClick = onScanClick,
             modifier = Modifier.fillMaxWidth(),
@@ -129,7 +123,6 @@ fun ReceivingScreen(
             Text(text = "OPEN CAMERA SCANNER")
         }
         
-        // Finish Button
         Button(
             onClick = { 
                 viewModel.finishReceiving {
@@ -251,10 +244,19 @@ fun ReceivingItemRow(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = item.getBrand(),
-                    style = MaterialTheme.typography.labelSmall
-                )
+                Row {
+                    Text(
+                        text = "ID: ${item.lineItemNumber}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = item.getBrand(),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
             
             Column(horizontalAlignment = Alignment.End) {

@@ -1,6 +1,7 @@
 package com.example.loadassist
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,6 +18,7 @@ import com.example.loadassist.ui.theme.LoadAssistTheme
 import com.example.loadassist.ui_.AddProductScreen
 import com.example.loadassist.ui_.AddUserScreen
 import com.example.loadassist.ui_.FinishedLoadScreen
+import com.example.loadassist.ui_.InvoiceScannerScreen
 import com.example.loadassist.ui_.LoadPlanScreen
 import com.example.loadassist.ui_.Login
 import com.example.loadassist.ui_.ManagerMenuScreen
@@ -27,6 +29,7 @@ import com.example.loadassist.ui_.ReceivingScreen
 import com.example.loadassist.ui_.ReportsScreen
 import com.example.loadassist.ui_.RunnerOrganizationScreen
 import com.example.loadassist.ui_.ScannerScreen
+import com.example.loadassist.ui_.SplashScreen
 import com.example.loadassist.ui_.WorkerMenuScreen
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -38,6 +41,7 @@ import com.google.firebase.auth.auth
 //this enum class is used for navigation purposes, cited from
 //https://developer.android.com/codelabs/basic-android-kotlin-compose-navigation#3
 enum class LoadAssistScreen {
+    SPLASH,
     START,
     WORKERMENU,
     MANAGERMENU,
@@ -50,7 +54,8 @@ enum class LoadAssistScreen {
     ADD_PRODUCT,
     FINISHED_LOAD,
     ADD_USER,
-    REPORTS
+    REPORTS,
+    INVOICE_SCANNER
 }
 
 class MainActivity : ComponentActivity() {
@@ -77,9 +82,18 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = LoadAssistScreen.START.name,
+                        startDestination = LoadAssistScreen.SPLASH.name,
                         modifier = Modifier.padding(innerPadding)
                     ) {
+                        composable(route = LoadAssistScreen.SPLASH.name) {
+                            SplashScreen(
+                                onAnimationFinished = {
+                                    navController.navigate(LoadAssistScreen.START.name) {
+                                        popUpTo(LoadAssistScreen.SPLASH.name) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
                         composable(route = LoadAssistScreen.START.name) {
                             Login(
                                 onLoginSuccess = {
@@ -151,6 +165,26 @@ class MainActivity : ComponentActivity() {
                                 viewModel = sharedViewModel,
                                 onLoadPlanClick = {
                                     navController.navigate(LoadAssistScreen.LOAD_PLAN.name)
+                                },
+                                onScanInvoiceClick = {
+                                    navController.navigate(LoadAssistScreen.INVOICE_SCANNER.name)
+                                }
+                            )
+                        }
+                        composable(route = LoadAssistScreen.INVOICE_SCANNER.name) {
+                            InvoiceScannerScreen(
+                                onTextDetected = { text ->
+                                    val count = sharedViewModel.processScannedInvoiceText(text)
+                                    if (count > 0) {
+                                        Toast.makeText(this@MainActivity, "Added $count items!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(this@MainActivity, "No matching items found in scan.", Toast.LENGTH_LONG).show()
+                                        Log.w("ASN_SCAN", "Scan complete but 0 items matched. Text: $text")
+                                    }
+                                    navController.popBackStack()
+                                },
+                                onClose = {
+                                    navController.popBackStack()
                                 }
                             )
                         }

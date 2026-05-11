@@ -1,5 +1,6 @@
 package com.example.loadassist.ui_
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -48,6 +49,7 @@ fun ReportsScreen(
             .orderBy("endTime", Query.Direction.DESCENDING)
             .get()
             .addOnSuccessListener { result ->
+                Log.d("ReportsScreen", "Successfully fetched ${result.size()} reports from finished_loads")
                 reports = result.map { doc ->
                     LoadReport(
                         id = doc.id,
@@ -62,7 +64,8 @@ fun ReportsScreen(
                 }
                 isLoading = false
             }
-            .addOnFailureListener {
+            .addOnFailureListener { e ->
+                Log.e("ReportsScreen", "Firestore Error: ${e.message}", e)
                 isLoading = false
             }
     }
@@ -79,24 +82,27 @@ fun ReportsScreen(
             )
         }
     ) { innerPadding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (reports.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No reports found.")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(reports) { report ->
-                    ReportItem(report)
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (reports.isEmpty()) {
+                Text(
+                    text = "No reports found in 'finished_loads'.",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(reports) { report ->
+                        ReportItem(report)
+                    }
                 }
             }
         }
@@ -147,7 +153,7 @@ fun ReportItem(report: LoadReport) {
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {

@@ -35,6 +35,7 @@ private const val FUNCTION_NAME = "registerNewUser"
 fun AddUserScreen(
     onNavigateBack: () -> Unit
 ) {
+    var fullName by remember { mutableStateOf("") }
     var employeeNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -70,9 +71,19 @@ fun AddUserScreen(
             Text(text = "Account Credentials", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
 
             OutlinedTextField(
+                value = fullName,
+                onValueChange = { fullName = it },
+                label = { Text("Full Name") },
+                placeholder = { Text("e.g. Robert Smith") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = employeeNumber,
                 onValueChange = { employeeNumber = it },
                 label = { Text("Employee Number") },
+                placeholder = { Text("e.g. 123456") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -138,8 +149,8 @@ fun AddUserScreen(
                         return@Button
                     }
 
-                    if (employeeNumber.length < 4 || password.length < 6) {
-                        Toast.makeText(context, "Invalid ID or Password (min 6 chars)", Toast.LENGTH_SHORT).show()
+                    if (fullName.isBlank() || employeeNumber.length < 4 || password.length < 6) {
+                        Toast.makeText(context, "Please fill in all fields correctly (Password min 6 chars)", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
@@ -151,6 +162,7 @@ fun AddUserScreen(
                             Log.d("AddUserScreen", "Token refresh success. Token length: ${idToken?.length}")
                             
                             val data = hashMapOf(
+                                "fullName" to fullName.trim(),
                                 "employeeNumber" to employeeNumber.trim(),
                                 "password" to password,
                                 "role" to selectedRole.lowercase(),
@@ -162,7 +174,7 @@ fun AddUserScreen(
                                 .call(data)
                                 .addOnSuccessListener { result ->
                                     isSaving = false
-                                    Toast.makeText(context, "User Created Successfully!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "User $fullName Created!", Toast.LENGTH_LONG).show()
                                     onNavigateBack()
                                 }
                                 .addOnFailureListener { e ->

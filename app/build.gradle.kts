@@ -50,14 +50,13 @@ dependencies {
     implementation(libs.coil.compose)
     
     // Firebase
-    implementation("com.google.firebase:firebase-appcheck-playintegrity")
-// Also add the debug provider so it works on your emulator/debug device
-    implementation("com.google.firebase:firebase-appcheck-debug")
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-functions")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    implementation("com.google.firebase:firebase-appcheck-debug")
     
     // CameraX and ML Kit
     implementation(libs.androidx.camera.core)
@@ -65,6 +64,8 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.play.services.mlkit.barcode.scanning)
+    // ADDED: Text Recognition
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.material3)

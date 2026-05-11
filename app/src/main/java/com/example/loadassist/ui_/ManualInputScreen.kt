@@ -11,10 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material3.*
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,29 +31,38 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun ManualInputScreen(
     modifier: Modifier = Modifier,
     onLoadPlanClick: () -> Unit = {},
+    onScanInvoiceClick: () -> Unit = {},
     viewModel: ManualInputViewModel = viewModel()
 ) {
-    //update our state variables from the viewmodel to UI
     val categories by viewModel.categories.collectAsState()
     val invoice by viewModel.invoice.collectAsState()
     val refreshTrigger by viewModel.refreshTrigger.collectAsState()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "Manual Invoice Input",
+            text = "Invoice Input",
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
 
+        // Visual Scan Button
+        Button(
+            onClick = onScanInvoiceClick,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        ) {
+            Icon(Icons.Default.DocumentScanner, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("SCAN PRINTED INVOICE (OCR)")
+        }
+
         HorizontalDivider()
 
-        // Give the LazyColumn weight(1f) to take all available space above the footer
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            // 1. List all categories
             items(categories) { category ->
                 CategoryExpandableItem(
                     categoryName = category,
@@ -60,7 +70,6 @@ fun ManualInputScreen(
                 )
             }
 
-            // 2. Push the Invoice Preview to the bottom of the scrollable list
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 
@@ -74,7 +83,7 @@ fun ManualInputScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 100.dp, max = 300.dp) // Dynamic height constraints
+                        .heightIn(min = 100.dp, max = 300.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                         .padding(12.dp)
                 ) {
@@ -84,7 +93,7 @@ fun ManualInputScreen(
                             sb.append("No items added yet.")
                         } else {
                             invoice.forEach { item ->
-                                sb.append("• ${item.getlineItem()} (${item.getCategory()}) QUANTITY: ${item.getQuantity()}\n")
+                                sb.append("• ${item.getlineItem()} QUANTITY: ${item.getQuantity()}\n")
                             }
                         }
                         sb.toString()
@@ -101,7 +110,6 @@ fun ManualInputScreen(
             }
         }
 
-        // Summary Footer - stays fixed at the very bottom
         if (refreshTrigger >= 0) {
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(
@@ -109,10 +117,7 @@ fun ManualInputScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Total Items:",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text(text = "Total Items:", style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "${invoice.totalQuantity}",
                     style = MaterialTheme.typography.headlineSmall,
@@ -124,11 +129,9 @@ fun ManualInputScreen(
         Button(
             onClick = onLoadPlanClick,
             modifier = Modifier.fillMaxWidth()
-        )
-        {
+        ) {
             Text(text = "LOAD INPUT COMPLETE")
         }
-
     }
 }
 
@@ -141,24 +144,15 @@ fun CategoryExpandableItem(
     val itemsList = viewModel.categoryItems[categoryName] ?: emptyList()
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.toggleCategoryExpansion(categoryName) }
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleCategoryExpansion(categoryName) }.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = categoryName,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f)
-                )
+                Text(text = categoryName, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) "Collapse" else "Expand"
@@ -173,11 +167,7 @@ fun CategoryExpandableItem(
                         }
                     } else {
                         itemsList.forEach { itemName ->
-                            ItemRow(
-                                itemName = itemName,
-                                category = categoryName,
-                                viewModel = viewModel
-                            )
+                            ItemRow(itemName = itemName, category = categoryName, viewModel = viewModel)
                         }
                     }
                 }
@@ -198,29 +188,16 @@ fun ItemRow(
     }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = itemName,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text(text = itemName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { viewModel.removeItem(itemName, category) }) {
                 Icon(Icons.Default.Remove, contentDescription = "Decrease")
             }
-
-            Text(
-                text = currentQty.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-
+            Text(text = currentQty.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp))
             IconButton(onClick = { viewModel.addItem(itemName, category) }) {
                 Icon(Icons.Default.Add, contentDescription = "Increase")
             }

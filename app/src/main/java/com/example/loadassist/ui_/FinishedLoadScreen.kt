@@ -2,7 +2,6 @@ package com.example.loadassist.ui_
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,13 +39,13 @@ fun FinishedLoadScreen(
         return
     }
 
-    val completionRate = report!!["completionRate"] as Float
-    val totalExpected = report!!["totalExpected"] as Int
-    val totalReceived = report!!["totalReceived"] as Int
-    val missingItems = report!!["missingItems"] as List<Map<String, Any>>
-    val invoiceNumber = report!!["invoiceNumber"] as String
+    // Match the keys from ManualInputViewModel.finishReceiving()
+    val completionRate = report!!["completionRate"] as? Float ?: 0f
+    val totalExpected = report!!["totalItems"] as? Int ?: 0
+    val totalReceived = report!!["receivedItems"] as? Int ?: 0
+    val missingItems = report!!["missingItems"] as? List<String> ?: emptyList()
+    val invoiceNumber = report!!["invoiceNumber"] as? String ?: "N/A"
 
-    // Animation States
     val infiniteTransition = rememberInfiniteTransition(label = "ring")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -82,14 +81,12 @@ fun FinishedLoadScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Animated Status Indicator
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(150.dp).padding(top = 16.dp)
         ) {
             val statusColor = if (completionRate >= 100f) Color(0xFF4CAF50) else Color(0xFFFF9800)
             
-            // Rotating dashed ring
             Canvas(modifier = Modifier.fillMaxSize().scale(pulse)) {
                 drawCircle(
                     color = statusColor,
@@ -121,8 +118,8 @@ fun FinishedLoadScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Summary for Invoice #:", style = MaterialTheme.typography.labelLarge)
-                Text(text = invoiceNumber, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(text = "Summary for Invoice #:", style = MaterialTheme.typography.labelSmall)
+                Text(text = invoiceNumber, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -165,17 +162,9 @@ fun FinishedLoadScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(missingItems) { item ->
+                items(missingItems) { detailString ->
                     ListItem(
-                        headlineContent = { Text(item["name"] as String, fontWeight = FontWeight.Bold) },
-                        supportingContent = { Text("Short by ${item["missing"]} units") },
-                        trailingContent = {
-                            Text(
-                                text = "${item["received"]} / ${item["expected"]}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        },
+                        headlineContent = { Text(detailString, fontWeight = FontWeight.Bold) },
                         colors = ListItemDefaults.colors(containerColor = Color(0xFFFFF3E0))
                     )
                 }
@@ -185,6 +174,7 @@ fun FinishedLoadScreen(
             Text(
                 text = "Perfect match! No items are missing.",
                 color = Color(0xFF4CAF50),
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 32.dp)
             )
         }

@@ -7,6 +7,7 @@ import com.example.loadassist.objects.Invoice
 import com.example.loadassist.objects.lineItems
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,8 @@ class ManualInputViewModel : ViewModel() {
     private val _scannedItems = mutableStateMapOf<lineItems, Int>()
     val scannedItems: Map<lineItems, Int> = _scannedItems
 
+    private var startTime: Long? = null
+
     // Manager role state
     private val _isManager = MutableStateFlow(false)
     val isManager: StateFlow<Boolean> = _isManager.asStateFlow()
@@ -57,138 +60,84 @@ class ManualInputViewModel : ViewModel() {
     private fun checkUserRole() {
         val currentUser = auth.currentUser
         if (currentUser == null) return
-
         val email = currentUser.email ?: ""
         val empNumber = email.substringBefore("@")
 
-        // 1. Hardcoded Master Admin Bypass (for you)
         if (empNumber == "148596") {
             _isManager.value = true
-            Log.d("ManualInputViewModel", "Master Admin $empNumber detected")
-            
-            // Refresh token as requested for the manager
-            currentUser.getIdToken(true).addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val idToken = task.result?.token
-                    Log.d("Auth", "Token refreshed successfully for Manager/Admin")
-                } else {
-                    Log.e("Auth", "Token refresh failed", task.exception)
-                }
-            }
             return
         }
 
-        // 2. Standard Token Check (for everyone else)
         currentUser.getIdToken(true).addOnSuccessListener { result ->
             val isManagerClaim = result.claims["isManager"] as? Boolean ?: false
             _isManager.value = isManagerClaim
-            Log.d("ManualInputViewModel", "Token Manager Status: $isManagerClaim")
         }
     }
 
     private fun fetchCategories() {
-        db.collection("category")
-            .get()
-            .addOnSuccessListener { result ->
-                _categories.value = result.documents.mapNotNull { it.getString("name") }
-            }
+        db.collection("category").get().addOnSuccessListener { result ->
+            _categories.value = result.documents.mapNotNull { it.getString("name") }
+        }
     }
 
     fun fetchAllProducts() {
-        db.collection("items")
-            .get()
-            .addOnSuccessListener { result ->
-                _allProducts.value = result.documents.mapNotNull { doc ->
-                    try {
-                        val barcodeId = doc.getString("barcodeId") ?: ""
-                        val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
-                        
-                        lineItems(
-                            doc.getString("name") ?: "",
-                            doc.getString("category") ?: "General",
-                            doc.getString("brand") ?: "Unknown",
-                            itemNumber,
-                            if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId,
-                            doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
-                            doc.getString("imageUrl") ?: "",
-                            doc.getString("description") ?: "No description provided.",
-                            doc.getString("handlingGuide") ?: "No special handling instructions.",
-                            doc.getString("productType") ?: "pre-packaged",
-                            doc.get("length")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("width")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("height")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("weight")?.toString()?.toDoubleOrNull() ?: 0.0
-                        )
-                    } catch (e: Exception) {
-                        Log.e("ManualInputViewModel", "Error parsing item: ${doc.id}", e)
-                        null
-                    }
-                }
+        db.collection("items").get().addOnSuccessListener { result ->
+            _allProducts.value = result.documents.mapNotNull { doc ->
+                try {
+                    val barcodeId = doc.getString("barcodeId") ?: ""
+                    val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
+                    
+                    lineItems(
+                        doc.getString("name") ?: "",
+                        doc.getString("category") ?: "General",
+                        doc.getString("brand") ?: "Unknown",
+                        itemNumber,
+                        if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId,
+                        doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
+                        doc.getString("imageUrl") ?: "",
+                        doc.getString("description") ?: "",
+                        doc.getString("handlingGuide") ?: "",
+                        doc.getString("productType") ?: "pre-packaged",
+                        doc.get("length")?.toString()?.toDoubleOrNull() ?: 0.0,
+                        doc.get("width")?.toString()?.toDoubleOrNull() ?: 0.0,
+                        doc.get("height")?.toString()?.toDoubleOrNull() ?: 0.0,
+                        doc.get("weight")?.toString()?.toDoubleOrNull() ?: 0.0
+                    )
+                } catch (e: Exception) { null }
             }
+        }
     }
     
     fun toggleCategoryExpansion(category: String) {
         val isExpanded = _expandedCategories[category] ?: false
         _expandedCategories[category] = !isExpanded
-        
-        if (!isExpanded && !_categoryItemNames.containsKey(category)) {
-            fetchItemsForCategory(category)
-        }
+        if (!isExpanded && !_categoryItemNames.containsKey(category)) fetchItemsForCategory(category)
     }
     
     private fun fetchItemsForCategory(category: String) {
-        db.collection("items")
-            .whereEqualTo("category", category)
-            .get()
-            .addOnSuccessListener { result ->
-                val items = result.documents.mapNotNull { doc ->
-                    try {
-                        val barcodeId = doc.getString("barcodeId") ?: ""
-                        val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
-                        
-                        lineItems(
-                            doc.getString("name") ?: "",
-                            category,
-                            doc.getString("brand") ?: "Unknown",
-                            itemNumber,
-                            if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId,
-                            doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
-                            doc.getString("imageUrl") ?: "",
-                            doc.getString("description") ?: "",
-                            doc.getString("handlingGuide") ?: "",
-                            doc.getString("productType") ?: "pre-packaged",
-                            doc.get("length")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("width")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("height")?.toString()?.toDoubleOrNull() ?: 0.0,
-                            doc.get("weight")?.toString()?.toDoubleOrNull() ?: 0.0
-                        )
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-                _categoryItemsMap[category] = items
-                _categoryItemNames[category] = items.map { it.getlineItem() }
+        db.collection("items").whereEqualTo("category", category).get().addOnSuccessListener { result ->
+            val items = result.documents.mapNotNull { doc ->
+                try {
+                    val barcodeId = doc.getString("barcodeId") ?: ""
+                    val itemNumber = doc.get("itemNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 0
+                    lineItems(doc.getString("name") ?: "", category, doc.getString("brand") ?: "", itemNumber, if (barcodeId.isEmpty()) itemNumber.toString() else barcodeId, doc.get("runnerNumber")?.toString()?.toDoubleOrNull()?.toInt() ?: 1, doc.getString("imageUrl") ?: "", doc.getString("description") ?: "", doc.getString("handlingGuide") ?: "", doc.getString("productType") ?: "pre-packaged", doc.get("length")?.toString()?.toDoubleOrNull() ?: 0.0, doc.get("width")?.toString()?.toDoubleOrNull() ?: 0.0, doc.get("height")?.toString()?.toDoubleOrNull() ?: 0.0, doc.get("weight")?.toString()?.toDoubleOrNull() ?: 0.0)
+                } catch (e: Exception) { null }
             }
+            _categoryItemsMap[category] = items
+            _categoryItemNames[category] = items.map { it.getlineItem() }
+        }
     }
     
     fun addItem(itemName: String, category: String) {
-        val details = _categoryItemsMap[category]?.find { it.getlineItem() == itemName }
+        val details = _allProducts.value.find { it.getlineItem() == itemName } ?:
+                      _categoryItemsMap[category]?.find { it.getlineItem() == itemName }
+        
         val newItem = if (details != null) {
             lineItems(
-                itemName, 
-                category, 
-                details.getBrand(), 
-                details.getLineItemNumber(), 
-                details.getBarcodeId(),
-                details.getRunnerNumber(),
-                details.getImageUrl(),
-                details.getDescription(),
-                details.getHandlingGuide(),
-                details.getProductType(),
-                details.getLength(),
-                details.getWidth(),
-                details.getHeight(),
-                details.getWeight()
+                itemName, category, details.getBrand(), details.getLineItemNumber(), details.getBarcodeId(),
+                details.getRunnerNumber(), details.getImageUrl(), details.getDescription(),
+                details.getHandlingGuide(), details.getProductType(), details.getLength(),
+                details.getWidth(), details.getHeight(), details.getWeight()
             )
         } else {
             lineItems(itemName, category, 0)
@@ -200,7 +149,6 @@ class ManualInputViewModel : ViewModel() {
     fun removeItem(itemName: String, category: String) {
         val list = _invoice.value.getItemsByCategory(category)
         val target = list?.iterator()?.asSequence()?.find { it.getlineItem() == itemName }
-        
         if (target != null) {
             _invoice.value.removeItem(target)
             _refreshTrigger.value++
@@ -213,11 +161,109 @@ class ManualInputViewModel : ViewModel() {
         return item?.quantity ?: 0
     }
 
+    fun processScannedInvoiceText(text: String): Int {
+        val products = _allProducts.value
+        if (products.isEmpty()) return 0
+
+        val lines = text.split("\n")
+        var itemsAddedCount = 0
+
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) return@forEach
+
+            val asnRowRegex = Regex("""^(\d{4,7})\s+(.+?)\s+(\d{1,3})(\s+\d+|\s*$)""")
+            val match = asnRowRegex.find(trimmed)
+
+            if (match != null) {
+                val itemNo = match.groupValues[1]
+                val detectedDesc = match.groupValues[2].trim().uppercase()
+                val quantity = match.groupValues[3].toIntOrNull() ?: 1
+                
+                var product = products.find { it.lineItemNumber.toString() == itemNo }
+                if (product == null) {
+                    product = products.find { it.getlineItem().uppercase().contains(detectedDesc) || detectedDesc.contains(it.getlineItem().uppercase()) }
+                }
+
+                if (product != null) {
+                    repeat(quantity) { addItem(product.getlineItem(), product.getCategory()) }
+                    itemsAddedCount++
+                    return@forEach
+                }
+            }
+
+            val standaloneIdRegex = Regex("""(\d{4,7})""")
+            val idMatch = standaloneIdRegex.find(trimmed)
+            if (idMatch != null) {
+                val potentialId = idMatch.groupValues[1]
+                val product = products.find { it.lineItemNumber.toString() == potentialId }
+                if (product != null) {
+                    addItem(product.getlineItem(), product.getCategory())
+                    itemsAddedCount++
+                }
+            }
+        }
+        
+        if (itemsAddedCount > 0) _refreshTrigger.value++
+        return itemsAddedCount
+    }
+
+    /**
+     * Enhanced Barcode Scanning for GS1-128
+     * Handles complex logistical barcodes by looking for embedded Item Numbers.
+     */
+    fun onBarcodeScanned(barcode: String): Boolean {
+        if (startTime == null) startTime = System.currentTimeMillis()
+        
+        // 1. First, try an exact match (UPC/Standard IDs)
+        var matchingItem = _invoice.value.iterator().asSequence().find { 
+            it.barcodeId == barcode || it.lineItemNumber.toString() == barcode 
+        }
+        
+        // 2. If no exact match and it's a long logistical barcode, try fuzzy extraction
+        if (matchingItem == null && barcode.length > 10) {
+            Log.d("Scanner", "Attempting GS1-128 extraction for: $barcode")
+            matchingItem = _invoice.value.iterator().asSequence().find { item ->
+                val idStr = item.lineItemNumber.toString()
+                // Check if the barcode string contains our 5 or 6 digit Item Number
+                // We ensure it's not part of a larger number by checking boundaries if possible,
+                // but standard containment is a great start for GS1-128.
+                idStr.length >= 4 && barcode.contains(idStr)
+            }
+        }
+        
+        return if (matchingItem != null) {
+            incrementScannedItem(matchingItem)
+            Log.d("Scanner", "Matched item: ${matchingItem.getlineItem()} via fuzzy scan")
+            true
+        } else {
+            Log.w("Scanner", "No match found for barcode: $barcode")
+            false
+        }
+    }
+
+    fun incrementScannedItem(item: lineItems) {
+        val currentCount = _scannedItems[item] ?: 0
+        if (currentCount < item.quantity) {
+            _scannedItems[item] = currentCount + 1
+            _refreshTrigger.value++
+        }
+    }
+
+    fun decrementScannedItem(item: lineItems) {
+        val currentCount = _scannedItems[item] ?: 0
+        if (currentCount > 0) {
+            _scannedItems[item] = currentCount - 1
+            _refreshTrigger.value++
+        }
+    }
+
     fun addNewProduct(
         name: String,
         category: String,
         brand: String,
         barcode: String,
+        itemNumber: Int,
         runner: Int,
         description: String,
         guide: String,
@@ -235,6 +281,7 @@ class ManualInputViewModel : ViewModel() {
             "category" to category,
             "brand" to brand,
             "barcodeId" to barcode,
+            "itemNumber" to itemNumber,
             "runnerNumber" to runner,
             "description" to description,
             "handlingGuide" to guide,
@@ -243,8 +290,7 @@ class ManualInputViewModel : ViewModel() {
             "length" to length,
             "width" to width,
             "height" to height,
-            "weight" to weight,
-            "itemNumber" to System.currentTimeMillis().toInt()
+            "weight" to weight
         )
 
         db.collection("items")
@@ -258,80 +304,43 @@ class ManualInputViewModel : ViewModel() {
             }
     }
 
-    fun incrementScannedItem(item: lineItems) {
-        val currentCount = _scannedItems[item] ?: 0
-        if (currentCount < item.quantity) {
-            _scannedItems[item] = currentCount + 1
-            _refreshTrigger.value++
-        }
-    }
-    
-    fun decrementScannedItem(item: lineItems) {
-        val currentCount = _scannedItems[item] ?: 0
-        if (currentCount > 0) {
-            _scannedItems[item] = currentCount - 1
-            _refreshTrigger.value++
-        }
-    }
-    
-    fun onBarcodeScanned(barcode: String): Boolean {
-        val matchingItem = _invoice.value.iterator().asSequence().find { 
-            it.barcodeId == barcode || (it.barcodeId.isEmpty() && it.lineItemNumber.toString() == barcode)
-        }
-        
-        return if (matchingItem != null) {
-            incrementScannedItem(matchingItem)
-            true
-        } else {
-            false
-        }
-    }
-
     fun finishReceiving(onComplete: () -> Unit) {
         val totalToScan = _invoice.value.totalQuantity
         val totalScanned = _scannedItems.values.sum()
-        val completionRate = if (totalToScan > 0) (totalScanned.toFloat() / totalToScan * 100) else 0f
+        val missingItems = mutableListOf<String>()
         
-        val missingItems = mutableListOf<Map<String, Any>>()
         _invoice.value.forEach { item ->
             val scanned = _scannedItems[item] ?: 0
             if (scanned < item.quantity) {
-                missingItems.add(hashMapOf(
-                    "name" to item.getlineItem(),
-                    "expected" to item.quantity,
-                    "received" to scanned,
-                    "missing" to (item.quantity - scanned)
-                ))
+                missingItems.add("${item.getlineItem()} (Missing ${item.quantity - scanned})")
             }
         }
 
         val reportData = hashMapOf(
             "invoiceNumber" to _invoice.value.invoiceNumber,
-            "timestamp" to System.currentTimeMillis(),
-            "formattedDate" to _invoice.value.formattedDate,
-            "totalExpected" to totalToScan,
-            "totalReceived" to totalScanned,
-            "completionRate" to completionRate,
-            "missingItems" to missingItems,
-            "receivedBy" to (auth.currentUser?.email?.substringBefore("@") ?: "Unknown")
+            "employeeNumber" to (auth.currentUser?.email?.substringBefore("@") ?: "Unknown"),
+            "startTime" to (startTime?.let { java.util.Date(it) } ?: java.util.Date()),
+            "endTime" to FieldValue.serverTimestamp(),
+            "totalItems" to totalToScan,
+            "receivedItems" to totalScanned,
+            "completionRate" to (if (totalToScan > 0) (totalScanned.toFloat() / totalToScan * 100) else 100f),
+            "missingItems" to missingItems
         )
 
         _receivingReport.value = reportData
 
-        db.collection("receiving_reports")
+        // Changed collection to "finished_loads" to match the current ReportsScreen logic
+        db.collection("finished_loads")
             .add(reportData)
-            .addOnSuccessListener {
-                onComplete()
-            }
-            .addOnFailureListener { e ->
-                onComplete()
-            }
+            .addOnSuccessListener { onComplete() }
+            .addOnFailureListener { onComplete() }
     }
 
     fun resetReceiving() {
         _invoice.value = Invoice()
         _scannedItems.clear()
         _receivingReport.value = null
+        startTime = null
         _refreshTrigger.value++
     }
 }

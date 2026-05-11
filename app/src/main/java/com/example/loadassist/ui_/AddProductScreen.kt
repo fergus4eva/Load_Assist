@@ -27,6 +27,7 @@ fun AddProductScreen(
     var selectedCategory by remember { mutableStateOf("") }
     var brand by remember { mutableStateOf("") }
     var barcode by remember { mutableStateOf("") }
+    var itemNumber by remember { mutableStateOf("") }
     var runner by remember { mutableStateOf("1") }
     var description by remember { mutableStateOf("") }
     var guide by remember { mutableStateOf("") }
@@ -144,6 +145,15 @@ fun AddProductScreen(
             }
 
             OutlinedTextField(
+                value = itemNumber,
+                onValueChange = { itemNumber = it },
+                label = { Text("Item Number (from ASN)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            OutlinedTextField(
                 value = brand,
                 onValueChange = { brand = it },
                 label = { Text("Brand") },
@@ -154,7 +164,7 @@ fun AddProductScreen(
             OutlinedTextField(
                 value = barcode,
                 onValueChange = { barcode = it },
-                label = { Text("Barcode Number") },
+                label = { Text("Barcode Number (UPC)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -197,14 +207,24 @@ fun AddProductScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = weight,
-                onValueChange = { weight = it },
-                label = { Text("Weight (lbs)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
+            // Only show weight if it's not a bulk item
+            if (selectedType != "bulk") {
+                OutlinedTextField(
+                    value = weight,
+                    onValueChange = { weight = it },
+                    label = { Text("Weight (lbs)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+            } else {
+                Text(
+                    text = "Bulk items have variable weights; weight entry is disabled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
 
             OutlinedTextField(
                 value = description,
@@ -232,8 +252,8 @@ fun AddProductScreen(
 
             Button(
                 onClick = {
-                    if (name.isBlank() || selectedCategory.isBlank()) {
-                        Toast.makeText(context, "Name and Category are required", Toast.LENGTH_SHORT).show()
+                    if (name.isBlank() || selectedCategory.isBlank() || itemNumber.isBlank()) {
+                        Toast.makeText(context, "Name, Category, and Item Number are required", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     
@@ -243,6 +263,7 @@ fun AddProductScreen(
                         category = selectedCategory,
                         brand = brand,
                         barcode = barcode,
+                        itemNumber = itemNumber.toIntOrNull() ?: 0,
                         runner = runner.toIntOrNull() ?: 1,
                         description = description,
                         guide = guide,
@@ -251,7 +272,7 @@ fun AddProductScreen(
                         length = length.toDoubleOrNull() ?: 0.0,
                         width = width.toDoubleOrNull() ?: 0.0,
                         height = height.toDoubleOrNull() ?: 0.0,
-                        weight = weight.toDoubleOrNull() ?: 0.0,
+                        weight = if (selectedType == "bulk") 0.0 else (weight.toDoubleOrNull() ?: 0.0),
                         onSuccess = {
                             isSaving = false
                             Toast.makeText(context, "Product added successfully!", Toast.LENGTH_SHORT).show()
